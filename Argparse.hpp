@@ -26,6 +26,7 @@ namespace argparse {
     private:
         std::map<std::string, std::string> m_args_seen;
         std::vector<ArgInfo> m_arg_infos;
+        std::string epilogue;
 
         void showHelp(int exit_code);
         bool hasHelp();
@@ -36,6 +37,10 @@ namespace argparse {
 
     public:
         void ParseArgs(int argc, char **argv);
+
+        Argparse(const char *epilogue) : epilogue(std::string(epilogue)) {};
+        Argparse(std::string epilogue) : epilogue(epilogue) {};
+        Argparse() : epilogue("") {};
 
     protected:
         virtual void Parse() = 0;
@@ -136,6 +141,11 @@ namespace argparse {
             }
             std::cout << std::setw(width) << std::left << leftside << std::right << info.description << std::endl;
         }
+
+        if (epilogue.length() > 0) {
+            std::cout << "\n" << epilogue << std::endl;
+        }
+
         exit(exit_code);
     }
 

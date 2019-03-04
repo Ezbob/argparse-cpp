@@ -8,13 +8,15 @@ struct Arguments : public argparse::Argparse {
     double floating_value = 0.2;
     std::string name = "No one";
 
+    Arguments() : Argparse("Epilogue text / Copyright text") {}
+
     void Parse() {
         using namespace argparse;
-        arg(isDone, ArgType::TRUE_SWITCH, "d", "done", "Whether the stuff is done or not");
-        arg(extra_count, ArgType::KEY_VALUE, "lc", "long-count", "LONG COUNT!");
-        arg(count, ArgType::KEY_VALUE, "c", "count");
-        arg(floating_value, ArgType::KEY_VALUE, "f", "floating-value");
-        arg(name, ArgType::KEY_VALUE, "n", "name");
+        arg(isDone,         ArgType::TRUE_SWITCH,   "d",    "done",             "Whether the stuff is done or not");
+        arg(extra_count,    ArgType::KEY_VALUE,     "lc",   "long-count",       "LONG COUNT!");
+        arg(count,          ArgType::KEY_VALUE,     "c",    "count");
+        arg(floating_value, ArgType::KEY_VALUE,     "f",    "floating-value");
+        arg(name,           ArgType::KEY_VALUE,     "n",    "name");
     }
 };
 
