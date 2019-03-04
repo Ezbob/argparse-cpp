@@ -21,7 +21,7 @@ struct Arguments : public argparse::Argparse {
 int main(int argc, char **argv) {
 
     Arguments args;
-    args.ParseAll(argc, argv);
+    args.ParseArgs(argc, argv);
 
     std::cout << "Is done " << args.isDone << std::endl;
     std::cout << "float " << args.floating_value << std::endl;

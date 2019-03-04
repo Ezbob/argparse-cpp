@@ -5,9 +5,12 @@ HDRS=$(wildcard *.hpp) $(wildcard *.h)
 OBJS=$(patsubst %.cpp,%.o,$(SRCS))
 TARGET=argparse
 
+.PHONY: all clean
+
+all: $(TARGET)
+
 $(TARGET): $(OBJS) $(HDRS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-.PHONY: clean
 clean:
 	$(RM) $(OBJS) $(TARGET)
