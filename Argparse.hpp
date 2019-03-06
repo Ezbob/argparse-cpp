@@ -5,6 +5,7 @@
 #include <map>
 #include <iostream>
 #include <vector>
+#include <algorithm>
 #include <iomanip>
 
 namespace argparse {
@@ -22,10 +23,16 @@ namespace argparse {
         std::string description;
     };
 
+    struct ArgRaw {
+        bool isShort;
+        std::string key;
+        std::string raw_value;
+    };
+
     class Argparse {
     private:
-        std::map<std::string, std::string> m_args_seen;
-        std::vector<ArgInfo> m_arg_infos;
+        std::vector<ArgRaw> m_args_seen;
+        std::vector<ArgInfo> m_args_expected;
         std::string epilogue;
 
         void showHelp(int exit_code);
@@ -49,16 +56,20 @@ namespace argparse {
         void arg(T &argument, ArgType type, const char short_form, const char *long_form, const char *description = nullptr) {
 
             std::string dashed_short = std::string("") + short_form;
-            auto short_entry = m_args_seen.find(dashed_short);
-
             std::string dashed_long = long_form;
-            auto long_entry = m_args_seen.find(dashed_long);
+
+            auto long_entry = std::find_if(m_args_seen.begin(), m_args_seen.end(), [&dashed_long](ArgRaw &raw) {
+                return raw.key == dashed_long;
+            });
+            auto short_entry = std::find_if(m_args_seen.begin(), m_args_seen.end(), [&dashed_short](ArgRaw &raw) {
+                return raw.key == dashed_short;
+            });;
 
             if (short_entry != m_args_seen.end() && type == ArgType::KEY_VALUE) {
-                std::string raw_value = short_entry->second;
+                std::string raw_value = short_entry->raw_value;
                 argument = std::stoull(raw_value);
             } else if (long_entry != m_args_seen.end() && type == ArgType::KEY_VALUE) {
-                std::string raw_value = long_entry->second;
+                std::string raw_value = long_entry->raw_value;
                 argument = std::stoull(raw_value);
             }
 
@@ -83,6 +94,7 @@ namespace argparse {
         int last_arg_pos = -1;
 
         for (int i = 1; i < argc; ++i) {
+            bool is_short = false;
             std::string current = argv[i];
 
             if (current[0] == '-') {
@@ -91,6 +103,7 @@ namespace argparse {
                     current = current.substr(2);
                 } else {
                     current = current.substr(1);
+                    is_short = true;
                 }
 
                 // found option
@@ -100,17 +113,30 @@ namespace argparse {
                     std::string lefthandside = current.substr(0, equal_pos);
                     std::string righthandside = current.substr(equal_pos + 1);
 
-                    auto it = m_args_seen.find(lefthandside);
+                    //auto it = m_args_seen.find(lefthandside);
+                    auto it = std::find_if(m_args_seen.begin(), m_args_seen.end(), [&lefthandside](ArgRaw &raw) {
+                        return raw.key == lefthandside;
+                    });
                     if (it == m_args_seen.end()) {
-                        m_args_seen[lefthandside] = righthandside;
+                        ArgRaw new_arg;
+                        new_arg.isShort = is_short;
+                        new_arg.key = lefthandside;
+                        new_arg.raw_value = righthandside;
+                        m_args_seen.push_back(new_arg);
                     }
 
                 } else {
                     // parsing argument maybe followed by some value
-                    auto it = m_args_seen.find(current);
+                    auto it =  std::find_if(m_args_seen.begin(), m_args_seen.end(), [&current](ArgRaw &raw) {
+                        return raw.key == current;
+                    });
 
                     if (it == m_args_seen.end()) {
-                        m_args_seen[current] = "";
+                        ArgRaw new_arg;
+                        new_arg.isShort = is_short;
+                        new_arg.key = current;
+                        new_arg.raw_value = "";
+                        m_args_seen.push_back(new_arg);
                     }
 
                     last_arg_pos = i;
@@ -123,12 +149,15 @@ namespace argparse {
                     last_arg = last_arg.substr(2);
                 } else {
                     last_arg = last_arg.substr(1);
+                    is_short = true;
                 }
 
-                auto it = m_args_seen.find(last_arg);
+                auto it = std::find_if(m_args_seen.begin(), m_args_seen.end(), [&last_arg](ArgRaw &raw) {
+                    return raw.key == last_arg;
+                });
 
                 if (it != m_args_seen.end()) {
-                    m_args_seen[last_arg] = current;
+                    it->raw_value = current;
                 }
 
                 last_arg_pos = -1;
@@ -141,7 +170,7 @@ namespace argparse {
         int width = 42;
         std::cout << "Available arguments are:" << std::endl;
         std::cout << std::setw(width) << std::left << "    -h, --help" << std::right << "Show this help text and exit." << std::endl;
-        for ( ArgInfo &info : m_arg_infos ) {
+        for ( ArgInfo &info : m_args_expected ) {
             std::string leftside;
             if (info.type == ArgType::KEY_VALUE) {
                 leftside = "    -" + info.short_form + ", --" + info.long_form + "=VALUE";
@@ -159,8 +188,12 @@ namespace argparse {
     }
 
     bool Argparse::hasHelp() {
-        auto long_it = m_args_seen.find("help");
-        auto short_it = m_args_seen.find("h");
+        auto long_it = std::find_if(m_args_seen.begin(), m_args_seen.end(), [](ArgRaw &raw) {
+            return raw.key == "help";
+        });
+        auto short_it = std::find_if(m_args_seen.begin(), m_args_seen.end(), [](ArgRaw &raw) {
+            return raw.key == "h";
+        });;
 
         if (long_it != m_args_seen.end() || short_it != m_args_seen.end()) {
             return true;
@@ -172,22 +205,25 @@ namespace argparse {
         const char *safe_description = description == nullptr ? "" : description;
         std::string dashed_short = std::string("") + short_form;
         std::string dashed_long = long_form;
-        m_arg_infos.push_back({type, dashed_short, dashed_long, safe_description});
+        m_args_expected.push_back({type, dashed_short, dashed_long, safe_description});
     }
 
     bool Argparse::hasUnknownArg() {
         for (auto it : m_args_seen) {
-            std::string arg = it.first;
 
             bool notSeen = true;
-            for (ArgInfo &a : m_arg_infos) {
-                if (a.long_form == arg || a.short_form == arg) {
+            for (ArgInfo &a : m_args_expected) {
+                if (a.long_form == it.key || a.short_form == it.key) {
                     notSeen = false;
                     break;
                 }
             }
             if ( notSeen ) {
-                std::cout << "Error: Unknown argument '" << arg << "'" << std::endl;
+                if (it.isShort) {
+                    std::cout << "Error: Unknown argument '-" << it.key << "'" << std::endl;
+                } else {
+                    std::cout << "Error: Unknown argument '--" << it.key << "'" << std::endl;
+                }
                 return true;
             }
         }
@@ -196,7 +232,7 @@ namespace argparse {
 
     void Argparse::stopIfDuplicateArg() {
 
-        std::vector<ArgInfo> checking_stack(m_arg_infos);
+        std::vector<ArgInfo> checking_stack(m_args_expected);
 
         while (!checking_stack.empty()) {
             ArgInfo back = checking_stack.back();
@@ -227,8 +263,14 @@ namespace argparse {
         std::string dashed_short = std::string("") + short_form;
         std::string dashed_long = long_form;
 
-        auto short_entry = m_args_seen.find(dashed_short);
-        auto long_entry = m_args_seen.find(dashed_long);
+        //auto short_entry = m_args_seen.find(dashed_short);
+        //auto long_entry = m_args_seen.find(dashed_long);
+        auto long_entry = std::find_if(m_args_seen.begin(), m_args_seen.end(), [&dashed_long](ArgRaw &raw) {
+            return raw.key == dashed_long;
+        });
+        auto short_entry = std::find_if(m_args_seen.begin(), m_args_seen.end(), [&dashed_short](ArgRaw &raw) {
+            return raw.key == dashed_short;
+        });;
 
         if (long_entry != m_args_seen.end() || short_entry != m_args_seen.end()) {
             if (type == ArgType::TRUE_SWITCH) {
@@ -245,16 +287,20 @@ namespace argparse {
         std::string dashed_short = std::string("") + short_form;
         std::string dashed_long = long_form;
 
-        auto short_entry = m_args_seen.find(dashed_short);
-        auto long_entry = m_args_seen.find(dashed_long);
+        auto long_entry = std::find_if(m_args_seen.begin(), m_args_seen.end(), [&dashed_long](ArgRaw &raw) {
+            return raw.key == dashed_long;
+        });
+        auto short_entry = std::find_if(m_args_seen.begin(), m_args_seen.end(), [&dashed_short](ArgRaw &raw) {
+            return raw.key == dashed_short;
+        });
 
         if (long_entry != m_args_seen.end()) {
             if (type == ArgType::KEY_VALUE) {
-                arg = long_entry->second;
+                arg = long_entry->raw_value;
             }
         } else if (short_entry != m_args_seen.end()) {
             if (type == ArgType::KEY_VALUE) {
-                arg = short_entry->second;
+                arg = short_entry->raw_value;
             }
         }
 
@@ -265,17 +311,21 @@ namespace argparse {
         std::string dashed_short = std::string("") + short_form;
         std::string dashed_long = long_form;
 
-        auto short_entry = m_args_seen.find(dashed_short);
-        auto long_entry = m_args_seen.find(dashed_long);
+        auto long_entry = std::find_if(m_args_seen.begin(), m_args_seen.end(), [&dashed_long](ArgRaw &raw) {
+            return raw.key == dashed_long;
+        });
+        auto short_entry = std::find_if(m_args_seen.begin(), m_args_seen.end(), [&dashed_short](ArgRaw &raw) {
+            return raw.key == dashed_short;
+        });
 
         if (long_entry != m_args_seen.end()) {
             if (type == ArgType::KEY_VALUE) {
-                std::string raw_value = long_entry->second;
+                std::string raw_value = long_entry->raw_value;
                 argument = std::atof(raw_value.c_str());
             }
         } else if (short_entry != m_args_seen.end()) {
             if (type == ArgType::KEY_VALUE) {
-                std::string raw_value = short_entry->second;
+                std::string raw_value = short_entry->raw_value;
                 argument = std::atof(raw_value.c_str());
             }
         }
@@ -287,17 +337,21 @@ namespace argparse {
         std::string dashed_short = std::string("") + short_form;
         std::string dashed_long = long_form;
 
-        auto short_entry = m_args_seen.find(dashed_short);
-        auto long_entry = m_args_seen.find(dashed_long);
+        auto long_entry = std::find_if(m_args_seen.begin(), m_args_seen.end(), [&dashed_long](ArgRaw &raw) {
+            return raw.key == dashed_long;
+        });
+        auto short_entry = std::find_if(m_args_seen.begin(), m_args_seen.end(), [&dashed_short](ArgRaw &raw) {
+            return raw.key == dashed_short;
+        });
 
         if (long_entry != m_args_seen.end()) {
             if (type == ArgType::KEY_VALUE) {
-                std::string raw_value = long_entry->second;
+                std::string raw_value = long_entry->raw_value;
                 argument = std::atof(raw_value.c_str());
             }
         } else if (short_entry != m_args_seen.end()) {
             if (type == ArgType::KEY_VALUE) {
-                std::string raw_value = short_entry->second;
+                std::string raw_value = short_entry->raw_value;
                 argument = std::atof(raw_value.c_str());
             }
         }
