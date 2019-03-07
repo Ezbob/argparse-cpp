@@ -275,8 +275,6 @@ namespace argparse {
         std::string dashed_short = std::string("") + short_form;
         std::string dashed_long = long_form;
 
-        //auto short_entry = m_args_seen.find(dashed_short);
-        //auto long_entry = m_args_seen.find(dashed_long);
         auto long_entry = std::find_if(m_args_seen.begin(), m_args_seen.end(), [&dashed_long](ArgRaw &raw) {
             return raw.key == dashed_long;
         });
