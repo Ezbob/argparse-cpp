@@ -7,6 +7,7 @@
 #include <vector>
 #include <algorithm>
 #include <iomanip>
+#include <functional>
 
 namespace argparse {
 
@@ -51,6 +52,8 @@ namespace argparse {
 
     protected:
         virtual void Parse() = 0;
+
+        void validate(std::function<bool()> validator, const char *fail_msg);
 
         template<typename T>
         void arg(T &argument, ArgType type, const char short_form, const char *long_form, const char *description = nullptr) {
@@ -256,6 +259,13 @@ namespace argparse {
             showHelp(0);
         } else if ( hasUnknownArg() ) {
             showHelp(1);
+        }
+    }
+
+    void Argparse::validate(std::function<bool()> validator, const char *fail_msg) {
+        if ( !validator() ) {
+            std::cout << "Error: " << fail_msg << std::endl;
+            showHelp(2);
         }
     }
 

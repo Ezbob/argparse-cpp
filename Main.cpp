@@ -2,7 +2,8 @@
 #include "Argparse.hpp"
 
 struct Arguments : public argparse::Argparse {
-    bool isDone = false;
+    bool isDone = true;
+    bool isMoo = false;
     int count = 0;
     uint64_t extra_count = 0;
     double floating_value = 0.2;
@@ -12,11 +13,14 @@ struct Arguments : public argparse::Argparse {
 
     void Parse() {
         using namespace argparse;
-        arg(isDone,         ArgType::TRUE_SWITCH,   'd',    "done",             "Whether the stuff is done or not");
+        arg(isDone,         ArgType::FALSE_SWITCH,  'd',    "done",              "Whether the stuff is done or not");
+        arg(isMoo,          ArgType::TRUE_SWITCH,   'm',    "moo");
         arg(extra_count,    ArgType::KEY_VALUE,     'l',    "long-count",        "LONG COUNT!");
         arg(count,          ArgType::KEY_VALUE,     'c',    "count");
         arg(floating_value, ArgType::KEY_VALUE,     'f',    "floating-value");
         arg(name,           ArgType::KEY_VALUE,     'n',    "name");
+
+        validate([this]() { return isDone != false; }, "\'done\' must not be false");
     }
 };
 
