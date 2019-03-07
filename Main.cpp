@@ -19,8 +19,11 @@ struct Arguments : public argparse::Argparse {
         arg(count,          ArgType::KEY_VALUE,     'c',    "count");
         arg(floating_value, ArgType::KEY_VALUE,     'f',    "floating-value");
         arg(name,           ArgType::KEY_VALUE,     'n',    "name");
+    }
 
-        validate([this]() { return isDone != false; }, "\'done\' must not be false");
+    void Validate() {
+        constraint([this]() { return isDone != false; }, "\'done\' must not be false");
+        constraint([this]() { return extra_count <= 10; }, "\'long_count\' must be less than or equal to 10");
     }
 };
 

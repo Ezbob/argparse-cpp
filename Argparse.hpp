@@ -52,8 +52,9 @@ namespace argparse {
 
     protected:
         virtual void Parse() = 0;
+        virtual void Validate() {}
 
-        void validate(std::function<bool()> validator, const char *fail_msg);
+        void constraint(std::function<bool()> validator, const char *fail_msg);
 
         template<typename T>
         void arg(T &argument, ArgType type, const char short_form, const char *long_form, const char *description = nullptr) {
@@ -253,6 +254,7 @@ namespace argparse {
         load(argc, argv);
         Parse();
 
+        Validate();
         stopIfDuplicateArg();
 
         if ( hasHelp() ) {
@@ -262,7 +264,7 @@ namespace argparse {
         }
     }
 
-    void Argparse::validate(std::function<bool()> validator, const char *fail_msg) {
+    void Argparse::constraint(std::function<bool()> validator, const char *fail_msg) {
         if ( !validator() ) {
             std::cout << "Error: " << fail_msg << std::endl;
             showHelp(2);
