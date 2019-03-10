@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
     Arguments args;
     args.ParseAll(argc, argv);
 
-    /* do something with the parsed arguments here */
+    /* do something with the parsed arguments by accessing the members of the args struct, here */
 
     return 0;
 }
