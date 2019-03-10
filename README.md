@@ -20,10 +20,10 @@ struct Arguments : public argparse::Argparse {
 
     void Parse() {
         using namespace argparse;
-        arg(is_done, ArgType::TRUE_SWITCH, "d", "done", "Whether the stuff is done or not");
-        arg(count, ArgType::KEY_VALUE, "c", "count");
-        arg(floating_value, ArgType::KEY_VALUE, "f", "floating-value");
-        arg(name, ArgType::KEY_VALUE, "n", "name");
+        arg(is_done, ArgType::TRUE_SWITCH, 'd', "done", "Whether the stuff is done or not");
+        arg(count, ArgType::KEY_VALUE, 'c', "count");
+        arg(floating_value, ArgType::KEY_VALUE, 'f', "floating-value");
+        arg(name, ArgType::KEY_VALUE, 'n', "name");
     }
 };
 ```
