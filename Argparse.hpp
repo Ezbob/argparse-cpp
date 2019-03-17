@@ -91,6 +91,17 @@ namespace argparse {
             addArgInfo(type, short_form, long_form, description);
         }
 
+        template<typename T>
+        void vararg(std::vector<T> &vararg, const char *name, const char *description = nullptr) {
+            for (auto arg : m_var_args_seen) {
+                vararg.emplace_back(std::stoull(arg));
+            }
+            hasVarArgs = true;
+            addArgInfo(ArgType::VAR_ARG, ' ', name, description);
+        }
+
+        void vararg(std::vector<float> &vararg, const char *name, const char *description = nullptr);
+        void vararg(std::vector<double> &vararg, const char *name, const char *description = nullptr);
         void vararg(std::vector<std::string> &vararg, const char *name, const char *desciption = nullptr);
 
         void arg(bool &arg, ArgType type, const char short_form, const char *long_form, const char *description = nullptr);
@@ -106,6 +117,23 @@ namespace argparse {
      *                                                                                                                             *
      * =========================================================================================================================== *
     \**                                                                                                                           **/
+
+    void Argparse::vararg(std::vector<float> &vararg, const char *name, const char *description) {
+        for (auto arg : m_var_args_seen) {
+            vararg.emplace_back(std::atof(arg));
+        }
+        hasVarArgs = true;
+        addArgInfo(ArgType::VAR_ARG, ' ', name, description);
+    }
+
+    void Argparse::vararg(std::vector<double> &vararg, const char *name, const char *description) {
+        for (auto arg : m_var_args_seen) {
+            vararg.emplace_back(std::atof(arg));
+        }
+        hasVarArgs = true;
+        addArgInfo(ArgType::VAR_ARG, ' ', name, description);
+    }
+
 
     void Argparse::vararg(std::vector<std::string> &vararg, const char *name, const char *description) {
         for (auto arg : m_var_args_seen) {

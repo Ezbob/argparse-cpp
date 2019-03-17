@@ -8,7 +8,7 @@ struct Arguments : public argparse::Argparse {
     uint64_t extra_count = 0;
     double floating_value = 0.2;
     std::string name = "No one";
-    std::vector<std::string> numbers; 
+    std::vector<int> numbers; 
 
     Arguments() : Argparse("Epilogue text / Copyright text") {}
 
@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
     std::cout << "int " << args.extra_count << std::endl;
     std::cout << "name: " << args.name << std::endl;
 
-    for (std::string str : args.numbers) {
+    for (int str : args.numbers) {
         std::cout << str << std::endl;
     }
 
