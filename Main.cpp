@@ -20,7 +20,7 @@ struct Arguments : public argparse::Argparse {
         arg(count,          ArgType::KEY_VALUE,     'c',    "count");
         arg(floating_value, ArgType::KEY_VALUE,     'f',    "floating-value");
         arg(name,           ArgType::KEY_VALUE,     'n',    "name");
-        vararg(numbers, "numbers");
+        vararg(numbers,     "numbers");
     }
 
     void Validate() {
@@ -38,6 +38,10 @@ int main(int argc, char **argv) {
     std::cout << "float " << args.floating_value << std::endl;
     std::cout << "int " << args.extra_count << std::endl;
     std::cout << "name: " << args.name << std::endl;
+
+    for (std::string str : args.numbers) {
+        std::cout << str << std::endl;
+    }
 
     return 0;
 }

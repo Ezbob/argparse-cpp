@@ -7,8 +7,11 @@
 #include <algorithm>
 #include <iomanip>
 #include <functional>
+#include <sstream>
 
 namespace argparse {
+
+    const int HELP_ARG_SPACE_WIDTH = 42;
 
     enum class ArgType {
         TRUE_SWITCH,
@@ -41,6 +44,8 @@ namespace argparse {
         std::vector<ArgInfo> m_args_expected;
         std::vector<char *> m_var_args_seen;
         std::string epilogue;
+
+        bool hasVarArgs = false;
 
         void showHelp(int exit_code);
         bool hasHelp();
@@ -106,6 +111,7 @@ namespace argparse {
         for (auto arg : m_var_args_seen) {
             vararg.emplace_back(std::string{arg});
         }
+        hasVarArgs = true;
         addArgInfo(ArgType::VAR_ARG, ' ', name, description);
     }
 
@@ -187,23 +193,38 @@ namespace argparse {
     }
 
     void Argparse::showHelp(int exit_code) {
-        int width = 42;
-        std::cout << "Available arguments are:" << std::endl;
-        std::cout << std::setw(width) << std::left << "    -h, --help" << std::right << "Show this help text and exit." << std::endl;
+        std::stringstream output;
+        std::stringstream optargs;
+        std::stringstream varargs;
+        optargs << std::setw(HELP_ARG_SPACE_WIDTH) << std::left << "    -h, --help" << std::right << "Show this help text and exit." << std::endl;
+        
         for ( ArgInfo &info : m_args_expected ) {
             std::string leftside;
             if (info.type == ArgType::KEY_VALUE) {
                 leftside = "    -" + info.short_form + ", --" + info.long_form + "=VALUE";
-            } else {
+                optargs << std::setw(HELP_ARG_SPACE_WIDTH) << std::left << leftside << std::right << info.description << std::endl;
+            } else if (info.type == ArgType::TRUE_SWITCH || info.type == ArgType::FALSE_SWITCH) {
                 leftside = "    -" + info.short_form + ", --" + info.long_form;
+                optargs << std::setw(HELP_ARG_SPACE_WIDTH) << std::left << leftside << std::right << info.description << std::endl;
+            } else if (info.type == ArgType::VAR_ARG) {
+                leftside = "    " + info.long_form;
+                varargs << std::setw(HELP_ARG_SPACE_WIDTH) << std::left << leftside << std::right << info.description << std::endl;
             }
-            std::cout << std::setw(width) << std::left << leftside << std::right << info.description << std::endl;
         }
+
+        if ( hasVarArgs ) {
+            output << "Variable arguments are:" << std::endl;
+            output << varargs.str() << std::endl;
+        }
+
+        output << "Available arguments are:" << std::endl;
+        output << optargs.str();
 
         if (epilogue.length() > 0) {
-            std::cout << "\n" << epilogue << std::endl;
+            output << "\n" << epilogue << std::endl;
         }
 
+        std::cout << output.str();
         exit(exit_code);
     }
 
