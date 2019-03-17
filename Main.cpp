@@ -8,6 +8,7 @@ struct Arguments : public argparse::Argparse {
     uint64_t extra_count = 0;
     double floating_value = 0.2;
     std::string name = "No one";
+    std::vector<std::string> numbers; 
 
     Arguments() : Argparse("Epilogue text / Copyright text") {}
 
@@ -19,6 +20,7 @@ struct Arguments : public argparse::Argparse {
         arg(count,          ArgType::KEY_VALUE,     'c',    "count");
         arg(floating_value, ArgType::KEY_VALUE,     'f',    "floating-value");
         arg(name,           ArgType::KEY_VALUE,     'n',    "name");
+        vararg(numbers, "numbers");
     }
 
     void Validate() {

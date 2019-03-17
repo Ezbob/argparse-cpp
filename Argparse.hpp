@@ -2,7 +2,6 @@
 #define ARGPARSE_H_adkasdlkasdaooiwe230123fe
 
 #include <string>
-#include <map>
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -14,7 +13,13 @@ namespace argparse {
     enum class ArgType {
         TRUE_SWITCH,
         FALSE_SWITCH,
-        KEY_VALUE
+        KEY_VALUE,
+        VAR_ARG
+    };
+
+    enum class ArgRawType {
+        SHORT_ARG,
+        LONG_ARG
     };
 
     struct ArgInfo {
@@ -25,7 +30,7 @@ namespace argparse {
     };
 
     struct ArgRaw {
-        bool isShort;
+        ArgRawType type;
         std::string key;
         std::string raw_value;
     };
@@ -34,6 +39,7 @@ namespace argparse {
     private:
         std::vector<ArgRaw> m_args_seen;
         std::vector<ArgInfo> m_args_expected;
+        std::vector<char *> m_var_args_seen;
         std::string epilogue;
 
         void showHelp(int exit_code);
@@ -80,6 +86,8 @@ namespace argparse {
             addArgInfo(type, short_form, long_form, description);
         }
 
+        void vararg(std::vector<std::string> &vararg, const char *name, const char *desciption = nullptr);
+
         void arg(bool &arg, ArgType type, const char short_form, const char *long_form, const char *description = nullptr);
         void arg(double &arg, ArgType type, const char short_form, const char *long_form, const char *description = nullptr);
         void arg(float &arg, ArgType type, const char short_form, const char *long_form, const char *description = nullptr);
@@ -94,11 +102,18 @@ namespace argparse {
      * =========================================================================================================================== *
     \**                                                                                                                           **/
 
+    void Argparse::vararg(std::vector<std::string> &vararg, const char *name, const char *description) {
+        for (auto arg : m_var_args_seen) {
+            vararg.emplace_back(std::string{arg});
+        }
+        addArgInfo(ArgType::VAR_ARG, ' ', name, description);
+    }
+
     void Argparse::load(int argc, char **argv) {
         int last_arg_pos = -1;
 
         for (int i = 1; i < argc; ++i) {
-            bool is_short = false;
+            ArgRawType raw_arg_type = ArgRawType::LONG_ARG; // context info
             std::string current = argv[i];
 
             if (current[0] == '-') {
@@ -107,7 +122,7 @@ namespace argparse {
                     current = current.substr(2);
                 } else {
                     current = current.substr(1);
-                    is_short = true;
+                    raw_arg_type = ArgRawType::SHORT_ARG;
                 }
 
                 // found option
@@ -123,7 +138,7 @@ namespace argparse {
                     });
                     if (it == m_args_seen.end()) {
                         ArgRaw new_arg;
-                        new_arg.isShort = is_short;
+                        new_arg.type = raw_arg_type;
                         new_arg.key = lefthandside;
                         new_arg.raw_value = righthandside;
                         m_args_seen.push_back(new_arg);
@@ -137,7 +152,7 @@ namespace argparse {
 
                     if (it == m_args_seen.end()) {
                         ArgRaw new_arg;
-                        new_arg.isShort = is_short;
+                        new_arg.type = raw_arg_type;
                         new_arg.key = current;
                         new_arg.raw_value = "";
                         m_args_seen.push_back(new_arg);
@@ -153,7 +168,6 @@ namespace argparse {
                     last_arg = last_arg.substr(2);
                 } else {
                     last_arg = last_arg.substr(1);
-                    is_short = true;
                 }
 
                 auto it = std::find_if(m_args_seen.begin(), m_args_seen.end(), [&last_arg](ArgRaw &raw) {
@@ -165,6 +179,8 @@ namespace argparse {
                 }
 
                 last_arg_pos = -1;
+            } else {
+                m_var_args_seen.emplace_back(argv[i]);
             }
 
         }
@@ -223,10 +239,12 @@ namespace argparse {
                 }
             }
             if ( notSeen ) {
-                if (it.isShort) {
+                if (it.type == ArgRawType::SHORT_ARG) {
                     std::cout << "Error: Unknown argument '-" << it.key << "'" << std::endl;
-                } else {
+                } else if (it.type == ArgRawType::LONG_ARG) {
                     std::cout << "Error: Unknown argument '--" << it.key << "'" << std::endl;
+                } else {
+                    std::cout << "Error: Unknown argument '" << it.key << "'" << std::endl;
                 }
                 return true;
             }
